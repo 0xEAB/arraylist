@@ -13,13 +13,18 @@ import std.conv : to;
         super(message, file, line);
     }
 
-    package this(ptrdiff_t value, ptrdiff_t lowerBound, ptrdiff_t upperBound,
+    package this(size_t value, size_t lowerBound, size_t upperBound,
             string file = __FILE__, size_t line = __LINE__)
     {
-        const string message = "Index " ~ value.to!string ~ " is out of range ("
+        const string message = "Index " ~ value.to!string ~ " is out of bounds ("
             ~ lowerBound.to!string ~ " <= i < " ~ upperBound.to!string ~ ").";
 
         this(message, file, line);
+    }
+
+    package this(size_t value, size_t upperBound)
+    {
+        this(value, 0, upperBound);
     }
 
     @safe unittest
