@@ -15,7 +15,7 @@ public class ArrayList(T)
         T[] _array;
         size_t _pointer = 0;
 
-        @property @safe
+        @property @safe @nogc pure nothrow
         {
             size_t _capacity()
             {
@@ -23,11 +23,11 @@ public class ArrayList(T)
             }
         }
 
-        @property @safe
+        @property @safe @nogc pure nothrow
         {
             size_t _freeCapacity()
             {
-                return this._capacity - this.length;
+                return (this._capacity - this.length);
             }
         }
     }
@@ -36,9 +36,33 @@ public class ArrayList(T)
     {
         /++
             Returns:
-                The number of items stored in the list.
+                Does the list contain no items?
+         +/
+        @property @safe @nogc pure nothrow
+        {
+            bool empty()
+            {
+                return (this.length == 0);
+            }
+        }
+
+        /++
+            Retruns:
+                The list's first item
          +/
         @property @safe
+        {
+            T front()
+            {
+                return this._array.front;
+            }
+        }
+
+        /++
+            Returns:
+                The number of items stored in the list.
+         +/
+        @property @safe @nogc pure nothrow
         {
             size_t length()
             {
@@ -90,6 +114,9 @@ public class ArrayList(T)
     {
         /++
             Adds a new item to the list.
+
+            See_Also:
+                arraylist.ArrayList(T).insert
          +/
         void add(T item) @safe
         {
@@ -134,6 +161,37 @@ public class ArrayList(T)
         }
 
         /++
+            Removes all items from the lists.
+
+            See_Also:
+                arraylist.ArrayList(T).purge
+         +/
+        void clear(size_t initCapacity = 0) @safe
+        {
+            this._pointer = 0;
+            this._array = new T[](initCapacity);
+        }
+
+        /++
+            Returns:
+                Is the given item part of the list?
+         +/
+        bool contains(T item) @system
+        {
+            return this._array.contains(item);
+        }
+
+        /++
+            Returns:
+                Does the given range contain the same items as the list?
+         +/
+        bool equals(Range)(Range b) @safe 
+                if (isInputRange!Range && is(ElementType!Range == T))
+        {
+            return (this[0 .. $] == b);
+        }
+
+        /++
             Returns:
                 The n-th item of the list.
 
@@ -148,6 +206,67 @@ public class ArrayList(T)
             return this._array[n];
         }
 
+        /++
+            Returns:
+                The zero-based index of the given item.
+                <0 if the given item is contained in the list.
+         +/
+        ptrdiff_t indexOf(T item) @system
+        {
+            return this._array.indexOf(item);
+        }
+
+        /++
+            Inserts a new item into the last at the 
+
+            See_Also:
+                arraylist.ArrayList(T).add
+
+         +/
+        void insert(T item, size_t index) @safe
+        {
+            this._array ~= T.init;
+
+            this._array[index .. ($ - 1)].dup.copyInto(this._array[(index + 1) .. $]);
+            this._array[index] = item;
+
+            this._pointer++;
+        }        
+
+        /++
+            Removes all items from the lists.
+            Preserves the internal capacity.
+
+            See_Also:
+                arraylist.ArrayList(T).clear
+         +/
+        void purge() @safe
+        {
+            this._pointer = 0;
+
+            if (__traits(compiles, { T dummy = null; }))
+                this._array[] = null;
+        }
+
+        /++
+            Removes all occurrences of the given item from the list.
+         +/
+        void removeAllOf(T item) @system
+        {
+            this._array.removeAllOf(item);
+            this._pointer = this._array.length;
+        }
+
+        /++
+            Removes the n-th item from the list.
+         +/
+        void removeNth(size_t n) @safe
+        {
+            if (n >= this.length)
+                throw new IndexOutOfBoundsException(n, this.length);
+
+            this._array[(n + 1) .. $].copyInto(this._array[n .. $]);
+            this._pointer--;
         }
 
         /++
@@ -155,8 +274,6 @@ public class ArrayList(T)
          +/
         void set(T value, size_t index) @safe
         {
-            import core.Exception : RangeError;
-
             if (index >= this.length)
                 throw new IndexOutOfBoundsException(index, this.length);
 
@@ -167,7 +284,7 @@ public class ArrayList(T)
             Returns:
                 A slice of the 
          +/
-        T[] slice(size_t lower, size_t upper) @safe
+        T[] slice(size_t lower = 0, size_t upper = opDollar) @safe
         {
             assert(lower <= upper, "$lower must be less or equal $upper.");
 
@@ -181,7 +298,7 @@ public class ArrayList(T)
             Returns:
                 A new array containing the same items as the list.
          +/
-        T[] toArray() @safe
+        T[] toArray() @safe pure nothrow
         {
             return this._array[0 .. this.length].dup;
         }
@@ -190,8 +307,11 @@ public class ArrayList(T)
     public
     {
         alias opCatAssign = add;
+        alias opDollar = length;
+        alias opEquals = equals;
         alias opIndex = get;
         alias opIndexAssign = set;
+        alias opSlice = slice;
     }
 }
 
@@ -204,6 +324,7 @@ public class ArrayList(T)
     assert(l[0] == 122);
     assert(l[1] == 233);
 
+    assert(!l.empty);
     assert(l.length == 2);
 }
 
@@ -216,22 +337,31 @@ public class ArrayList(T)
     assert(l[0] == 122);
     assert(l.get(1) == 233);
 
+    assert(!l.empty);
     assert(l.length == 2);
+    assert(l.front == 122);
 
     assertThrown!IndexOutOfBoundsException(l[7]);
 }
 
-@safe unittest
+@system unittest
 {
     auto l = new ArrayList!int([122, 233, 344, 455]);
     assert(l.length == 4);
 
     l ~= 566;
     assert(l.length == 5);
-    assert(l._array == [122, 233, 344, 455, 566]);
+    assert(l == [122, 233, 344, 455, 566]);
+
+    assert(l.indexOf(233) == 1);
+    assert(l.indexOf(899) < 0);
+
+    l.insert(345, 3);
+    assert(l.indexOf(345) == 3);
+    assert(l == [122, 233, 344, 345, 455, 566]);
 }
 
-@safe unittest
+@system unittest
 {
     auto l = new ArrayList!int(10);
 
@@ -241,7 +371,15 @@ public class ArrayList(T)
     assert(l._array == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
     l.add([11, 12]);
-    assert(l._array == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    assert(l == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+
+    l.removeNth(3);
+    assertThrown!IndexOutOfBoundsException(l.removeNth(128));
+
+    assert(!l.contains(3));
+    assert(l[0 .. $] == [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+
+    assertThrown!IndexOutOfBoundsException(l[0 .. 128].dup);
 }
 
 @safe unittest
@@ -251,7 +389,8 @@ public class ArrayList(T)
 
     l[0] = 0;
     l.set(-1, 1);
-    assert(l._array[0 .. 3] == [0, -1, 3]);
+    assert(l == [0, -1, 3]);
 
     assertThrown!IndexOutOfBoundsException(l[5] = 0);
 }
+
