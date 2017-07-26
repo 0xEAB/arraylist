@@ -1,6 +1,6 @@
 {
 	"name": "arraylist",
-	"description": "A list-like wrapper for an array.",
+	"description": "A simple array-backed list.",
 	"license": "public domain",
 	"authors": ["0xEAB"],
 	"dependencies": {
