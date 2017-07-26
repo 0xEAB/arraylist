@@ -1,0 +1,9 @@
+{
+	"name": "arraylist",
+	"description": "A list-like wrapper for an array.",
+	"license": "public domain",
+	"authors": ["0xEAB"],
+	"dependencies": {
+		"algorithm": "~>0.2.0"
+	}
+}
