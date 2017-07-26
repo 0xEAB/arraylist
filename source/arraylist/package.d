@@ -13,7 +13,7 @@ public class ArrayList(T)
     private
     {
         T[] _array;
-        ptrdiff_t _pointer = 0;
+        size_t _pointer = 0;
 
         @property @safe
         {
@@ -25,7 +25,7 @@ public class ArrayList(T)
 
         @property @safe
         {
-            ptrdiff_t _freeCapacity()
+            size_t _freeCapacity()
             {
                 return this._capacity - this.length;
             }
@@ -121,7 +121,7 @@ public class ArrayList(T)
             }
             else
             {
-                const ptrdiff_t fc = this._freeCapacity;
+                const size_t fc = this._freeCapacity;
 
                 // copy the first fc items to fill to capacity
                 this._array[this._pointer .. $] = r[0 .. fc];
@@ -140,27 +140,50 @@ public class ArrayList(T)
             Throws:
                 RangeError if index is out of range.
          +/
-        T get(ptrdiff_t index) @safe
+        T get(size_t n) @safe
         {
-            import core.Exception : RangeError;
+            if (n >= this.length)
+                throw new IndexOutOfBoundsException(n, this.length);
 
-            if (index >= this.length || index < 0)
-                throw new IndexOutOfBoundsException(index, 0, this.length);
+            return this._array[n];
+        }
 
-            return this._array[index];
         }
 
         /++
             Sets the value of the list's n-th item.
          +/
-        void set(T value, ptrdiff_t index) @safe
+        void set(T value, size_t index) @safe
         {
             import core.Exception : RangeError;
 
-            if (index >= this.length || index < 0)
-                throw new IndexOutOfBoundsException(index, 0, this.length);
+            if (index >= this.length)
+                throw new IndexOutOfBoundsException(index, this.length);
 
             this._array[index] = value;
+        }
+
+        /++
+            Returns:
+                A slice of the 
+         +/
+        T[] slice(size_t lower, size_t upper) @safe
+        {
+            assert(lower <= upper, "$lower must be less or equal $upper.");
+
+            if (upper > this.length)
+                throw new IndexOutOfBoundsException(upper, this.length);
+
+            return this._array[lower .. upper];
+        }
+
+        /++
+            Returns:
+                A new array containing the same items as the list.
+         +/
+        T[] toArray() @safe
+        {
+            return this._array[0 .. this.length].dup;
         }
     }
 
@@ -223,7 +246,6 @@ public class ArrayList(T)
 
 @safe unittest
 {
-
     auto l = new ArrayList!int(10, [1, 2, 3]);
     assert(l.length == 3);
 
