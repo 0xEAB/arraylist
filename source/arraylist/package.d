@@ -2,13 +2,14 @@ module arraylist;
 
 import algorithm;
 public import arraylist.exception;
+import std.array : front, moveFront, popFront;
 import std.exception : assertThrown;
-import std.range : ElementType, isInputRange;
+import std.range : ElementType, InputRange, isInputRange, isNarrowString;
 
 /++
     A list-like wrapper for an array.
  +/
-public class ArrayList(T)
+public class ArrayList(T) : InputRange!T
 {
     private
     {
@@ -231,7 +232,74 @@ public class ArrayList(T)
             this._array[index] = item;
 
             this._pointer++;
-        }        
+        }
+
+        /++
+            Moves the front item of the list out and returns it,
+            similar to a stack's pop method but affecting the front instead of a "peek".
+
+            In comparison to std.range.primitives.moveFront
+            this does not cause any harm.
+
+            Returns:
+                The popped front item
+
+            See_Also:
+                arraylist.ArrayList(T).popFront,
+                https://www.tutorialspoint.com/data_structures_algorithms/stack_algorithm.htm
+         +/
+        T moveFront() @safe @nogc pure nothrow
+        {
+            T result = this._array.front;
+            this.popFront();
+
+            return result;
+        }
+
+        /++
+            See_Also:
+                std.range.interfaces.InputRange.opApply
+         +/
+        int opApply(scope int delegate(T) @safe dg) @safe
+        {
+            int result = 0;
+
+            foreach (item; this[0 .. $])
+            {
+                result = dg(item);
+                if (result)
+                    return result;
+            }
+
+            return result;
+        }
+
+        /++ ditto +/
+        int opApply(scope int delegate(size_t, T) @safe dg) @safe
+        {
+            int result = 0;
+
+            foreach (idx, item; this[0 .. $])
+            {
+                result = dg(idx, item);
+                if (result)
+                    return result;
+            }
+
+            return result;
+        }
+
+        /++
+            Moves the front item of the list out.
+
+            See_Also:
+                arraylist.ArrayList(T).moveFront
+         +/
+        void popFront() @safe @nogc pure nothrow
+        {
+            this._array.popFront();
+            this._pointer--;
+        }
 
         /++
             Removes all items from the lists.
@@ -394,3 +462,99 @@ public class ArrayList(T)
     assertThrown!IndexOutOfBoundsException(l[5] = 0);
 }
 
+@safe unittest
+{
+    auto l = new ArrayList!int();
+    l.add([0, 1, 2, 3]);
+    l.purge();
+
+    assert(l.empty);
+}
+
+@system unittest
+{
+    class Foo
+    {
+    }
+
+    auto l = new ArrayList!Foo();
+    l.add([new Foo(), new Foo(), new Foo()]);
+
+    assert(l.length == 3);
+
+    l.purge();
+    assert(l.length == 0);
+    assert(l.empty);
+    assert(l._array == [null, null, null]);
+
+    l.clear(2);
+    assert(l._array == [null, null]);
+
+    auto f = new Foo();
+    l.add(f);
+    Foo[] ar = l.toArray();
+    assert(ar == [f]);
+
+    l.add(ar);
+    assert(l == [f, f]);
+
+    auto b = new Foo();
+    l.add([f, null, f, b]);
+    l.removeAllOf(f);
+    assert(!l.contains(f));
+    assert(l == [null, b]);
+}
+
+@system unittest
+{
+    import core.exception : AssertError;
+
+    auto a = new ArrayList!int([1, 2, 3]);
+
+    a.popFront();
+    assert(a == [2, 3]);
+
+    a.popFront();
+    assert(a == [3]);
+
+    assert(a.moveFront() == 3);
+    assert(a.empty);
+
+    assertThrown!AssertError(a.popFront());
+}
+
+@safe unittest
+{
+    auto l = new ArrayList!int([122, 233, 344, 455]);
+
+    int[] c = [];
+    foreach (item; l)
+    {
+        c ~= item;
+    }
+    assert(c == l);
+
+    int f;
+    foreach (item; l)
+    {
+        f = item;
+        break;
+    }
+    assert(f == l.front);
+
+    c = [];
+    foreach (index, item; l)
+    {
+        assert(item == l[index]);
+        c ~= item;
+    }
+    assert(c == l);
+
+    f = -1;
+    foreach (index, item; l)
+    {
+        f = item;
+        break;
+    }
+    assert(f == l.front);
+}
