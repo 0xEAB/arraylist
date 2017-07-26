@@ -4,12 +4,12 @@ import algorithm;
 public import arraylist.exception;
 import std.array : front, moveFront, popFront;
 import std.exception : assertThrown;
-import std.range : ElementType, InputRange, isInputRange, isNarrowString;
+import std.range : ElementType, InputAssignable, isInputRange, isNarrowString;
 
 /++
     A list-like wrapper for an array.
  +/
-public class ArrayList(T) : InputRange!T
+public class ArrayList(T) : InputAssignable!T
 {
     private
     {
@@ -51,11 +51,16 @@ public class ArrayList(T) : InputRange!T
             Retruns:
                 The list's first item
          +/
-        @property @safe
+        @property @safe @nogc pure nothrow
         {
             T front()
             {
                 return this._array.front;
+            }
+
+            void front(T value)
+            {
+                this._array.front = value;
             }
         }
 
@@ -517,7 +522,10 @@ public class ArrayList(T) : InputRange!T
     a.popFront();
     assert(a == [3]);
 
-    assert(a.moveFront() == 3);
+    a.front = 11;
+    assert(a == [11]);
+
+    assert(a.moveFront() == 11);
     assert(a.empty);
 
     assertThrown!AssertError(a.popFront());
