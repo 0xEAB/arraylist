@@ -4,12 +4,12 @@ import algorithm;
 public import arraylist.exception;
 import std.array : front, moveFront, popFront;
 import std.exception : assertThrown;
-import std.range : ElementType, InputAssignable, isInputRange, isNarrowString;
+import std.range : ElementType, ForwardAssignable, isInputRange, isNarrowString;
 
 /++
     A list-like wrapper for an array.
  +/
-public class ArrayList(T) : InputAssignable!T
+public class ArrayList(T) : ForwardAssignable!T
 {
     private
     {
@@ -48,8 +48,7 @@ public class ArrayList(T) : InputAssignable!T
         }
 
         /++
-            Retruns:
-                The list's first item
+            The list's first item.
          +/
         @property @safe @nogc pure nothrow
         {
@@ -58,15 +57,18 @@ public class ArrayList(T) : InputAssignable!T
                 return this._array.front;
             }
 
+            /++ ditto +/
             void front(T value)
             {
                 this._array.front = value;
             }
         }
 
+        /++ ditto +/
+        alias first = front;
+
         /++
-            Returns:
-                The number of items stored in the list.
+            The number of items stored in the list.
          +/
         @property @safe @nogc pure nothrow
         {
@@ -75,7 +77,23 @@ public class ArrayList(T) : InputAssignable!T
                 return this._pointer;
             }
         }
+
+        /++ ditto +/
         alias count = length;
+
+        /++
+            Saves the current state of the list to a new copy.
+         +/
+        @property @safe
+        {
+            ArrayList!T save()
+            {
+                return new ArrayList!T(this._capacity, this[0 .. $]);
+            }
+        }
+
+        /++ ditto +/
+        alias dup = save;
     }
 
     /++
@@ -565,4 +583,40 @@ public class ArrayList(T) : InputAssignable!T
         break;
     }
     assert(f == l.front);
+}
+
+@safe unittest
+{
+    import std.range : isForwardRange;
+
+    /++
+        Inspired by:
+            Andrei Alexandrescu:
+                http://www.informit.com/articles/article.aspx?p=1407357&seqNum=7
+     +/
+    ptrdiff_t findAdjacent(Range)(Range range) if (isForwardRange!Range)
+    {
+        auto r = range.save();
+        if (!r.empty())
+        {
+            auto s = r.save();
+            s.popFront();
+
+            for (ptrdiff_t i = 0; !s.empty(); i++)
+            {
+                if (r.front() == s.front())
+                    return i;
+
+                r.popFront();
+                s.popFront();
+            }
+        }
+        return -1;
+    }
+
+    immutable ptrdiff_t a1 = findAdjacent(new ArrayList!int([122, 233, 344, 344, 455]));
+    assert(a1 == 2);
+
+    assert(findAdjacent(new ArrayList!int([122, 233, 344, 455, 455])) == 3);
+    assert(findAdjacent(new ArrayList!int([122, 233, 344, 455])) < 0);
 }
