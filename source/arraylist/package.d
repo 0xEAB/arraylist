@@ -38,17 +38,19 @@ public class ArrayList(T) : BidirectionalAssignable!T
         /++
             The list's last item.
          +/
-        @property @safe @nogc pure nothrow
+        @property @safe @nogc pure
         {
             T back()
             {
-                return this._array.back;
+                assert(!this.empty, "empty list");
+                return this._array[this.length - 1];
             }
 
             /++ ditto +/
             void back(T value)
             {
-                this._array.back = value;
+                assert(!this.empty, "empty list");
+                this._array[this.length - 1] = value;
             }
         }
 
@@ -292,7 +294,7 @@ public class ArrayList(T) : BidirectionalAssignable!T
          +/
         T moveBack() @safe @nogc pure
         {
-            T output = this._array.back;
+            T output = this.back;
             this.popBack();
 
             return output;
@@ -361,7 +363,7 @@ public class ArrayList(T) : BidirectionalAssignable!T
          +/
         void popBack() @safe @nogc pure
         {
-            this._array.popBack();
+            assert(this.length > 0, "empty list");
             this._pointer--;
         }
 
@@ -693,4 +695,12 @@ public class ArrayList(T) : BidirectionalAssignable!T
 
     assertNotThrown!AssertError(a.popBack());
     assertThrown!AssertError(a.popBack());
+}
+
+@safe unittest
+{
+    auto l = new ArrayList!int(10, [0, 1, 2, 3]);
+    assert(l.back == 3);
+    assert(l.moveBack == 3);
+    assert(l == [0, 1, 2]);
 }
