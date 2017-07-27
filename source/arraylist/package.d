@@ -2,14 +2,14 @@ module arraylist;
 
 import algorithm;
 public import arraylist.exception;
-import std.array : front, moveFront, popFront;
-import std.exception : assertThrown;
-import std.range : ElementType, ForwardAssignable, isInputRange, isNarrowString;
+import std.array : back, front, popBack, popFront;
+import std.exception : assertNotThrown, assertThrown;
+import std.range : BidirectionalAssignable, ElementType, isInputRange;
 
 /++
     A list-like wrapper for an array.
  +/
-public class ArrayList(T) : ForwardAssignable!T
+public class ArrayList(T) : BidirectionalAssignable!T
 {
     private
     {
@@ -36,8 +36,27 @@ public class ArrayList(T) : ForwardAssignable!T
     public
     {
         /++
-            Returns:
-                Does the list contain no items?
+            The list's last item.
+         +/
+        @property @safe @nogc pure nothrow
+        {
+            T back()
+            {
+                return this._array.back;
+            }
+
+            /++ ditto +/
+            void back(T value)
+            {
+                this._array.back = value;
+            }
+        }
+
+        /++ ditto +/
+        alias last = back;
+
+        /++
+            Does the list contain no items?
          +/
         @property @safe @nogc pure nothrow
         {
@@ -258,6 +277,28 @@ public class ArrayList(T) : ForwardAssignable!T
         }
 
         /++
+            Moves the back item of the list out and returns it,
+            similar to a stack's pop method but affecting the back instead of a "peek".
+
+            In comparison to std.range.primitives.moveBack
+            this does not cause any harm.
+
+            Returns:
+                The popped back item
+
+            See_Also:
+                arraylist.ArrayList(T).popBack,
+                https://www.tutorialspoint.com/data_structures_algorithms/stack_algorithm.htm
+         +/
+        T moveBack() @safe @nogc pure
+        {
+            T output = this._array.back;
+            this.popBack();
+
+            return output;
+        }
+
+        /++
             Moves the front item of the list out and returns it,
             similar to a stack's pop method but affecting the front instead of a "peek".
 
@@ -271,12 +312,12 @@ public class ArrayList(T) : ForwardAssignable!T
                 arraylist.ArrayList(T).popFront,
                 https://www.tutorialspoint.com/data_structures_algorithms/stack_algorithm.htm
          +/
-        T moveFront() @safe @nogc pure nothrow
+        T moveFront() @safe @nogc pure
         {
-            T result = this._array.front;
+            T output = this._array.front;
             this.popFront();
 
-            return result;
+            return output;
         }
 
         /++
@@ -313,12 +354,24 @@ public class ArrayList(T) : ForwardAssignable!T
         }
 
         /++
-            Moves the front item of the list out.
+            Removes the back item of the list.
+
+            See_Also:
+                arraylist.ArrayList(T).moveBack
+         +/
+        void popBack() @safe @nogc pure
+        {
+            this._array.popBack();
+            this._pointer--;
+        }
+
+        /++
+            Removes the front item of the list.
 
             See_Also:
                 arraylist.ArrayList(T).moveFront
          +/
-        void popFront() @safe @nogc pure nothrow
+        void popFront() @safe @nogc pure
         {
             this._array.popFront();
             this._pointer--;
@@ -619,4 +672,25 @@ public class ArrayList(T) : ForwardAssignable!T
 
     assert(findAdjacent(new ArrayList!int([122, 233, 344, 455, 455])) == 3);
     assert(findAdjacent(new ArrayList!int([122, 233, 344, 455])) < 0);
+}
+
+@system unittest
+{
+    import core.exception : AssertError;
+
+    auto a = new ArrayList!int([1, 2, 3]);
+
+    immutable int b = a.back;
+    a.popBack();
+    assert(!a.contains(b));
+    assert(a == [1, 2]);
+
+    a.back = 22;
+    assert(a == [1, 22]);
+
+    assert(a.moveBack() == 22);
+    assert(a == [1]);
+
+    assertNotThrown!AssertError(a.popBack());
+    assertThrown!AssertError(a.popBack());
 }
