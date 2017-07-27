@@ -26,7 +26,7 @@ public class ArrayList(T) : BidirectionalAssignable!T
 
         @property @safe @nogc pure nothrow
         {
-            size_t _freeCapacity()
+            size_t _unusedCapacity()
             {
                 return (this._capacity - this.length);
             }
@@ -191,7 +191,7 @@ public class ArrayList(T) : BidirectionalAssignable!T
             }
             else
             {
-                const size_t fc = this._freeCapacity;
+                const size_t fc = this._unusedCapacity;
 
                 // copy the first fc items to fill to capacity
                 this._array[this._pointer .. $] = r[0 .. fc];
