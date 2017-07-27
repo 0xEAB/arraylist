@@ -221,7 +221,7 @@ public class ArrayList(T) : BidirectionalAssignable!T
          +/
         bool contains(T item) @system
         {
-            return this._array.contains(item);
+            return this[0 .. $].contains(item);
         }
 
         /++
